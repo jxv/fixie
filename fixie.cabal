@@ -1,13 +1,13 @@
 name:
-  test-fixture
+  fixie
 version:
-  0.5.0.0
+  0.0.0
 synopsis:
-  Test monadic side-effects
+  Opiniated framework to test with spies, stubs, and/or mocks
 description:
   Please see README.md
 homepage:
-  http://github.com/cjdev/test-fixture#readme
+  http://github.com/jxv/fixie#readme
 license:
   BSD3
 license-file:
@@ -15,9 +15,9 @@ license-file:
 author:
   Joe Vargas
 maintainer:
-  jvargas@cj.com
+  joevargas92@gmail.com
 copyright:
-  2016 CJ Affiliate by Conversant
+  2016 CJ Affiliate by Conversant, 2016 Joe Vargas
 category:
   Test
 build-type:
@@ -34,10 +34,10 @@ library
   default-language: Haskell2010
   ghc-options: -Wall
   exposed-modules:
-    Control.Monad.TestFixture
-    Control.Monad.TestFixture.TH
-    Control.Monad.TestFixture.TH.Internal
-    Control.Monad.TestFixture.TH.Internal.TypesQuasi
+    Test.Fixie
+    Test.Fixie.TH
+    Test.Fixie.TH.Internal
+    Test.Fixie.TH.Internal.TypesQuasi
   build-depends:
       base >= 4.7 && < 5
     , data-default-class
@@ -51,20 +51,20 @@ source-repository head
   type:
     git
   location:
-    https://github.com/cjdev/test-fixture
+    https://github.com/jxv/fixie
 
-test-suite test-fixture-test-suite
+test-suite fixie-test-suite
   type: exitcode-stdio-1.0
   hs-source-dirs: test
   main-is: Main.hs
   default-language: Haskell2010
   ghc-options: -Wall
   other-modules:
-    Test.Control.Monad.TestFixtureSpec
-    Test.Control.Monad.TestFixture.THSpec
+    Test.Test.FixieSpec
+    Test.Test.Fixie.THSpec
   build-depends:
       base >= 4.7 && < 5
-    , test-fixture
+    , fixie
     , hspec
     , hspec-discover
     , mtl

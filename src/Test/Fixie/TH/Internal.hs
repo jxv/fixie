@@ -1,10 +1,11 @@
 {-# OPTIONS_HADDOCK hide, not-home #-}
+
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TupleSections #-}
 
-module Control.Monad.TestFixture.TH.Internal where
+module Test.Fixie.TH.Internal where
 
 #if MIN_VERSION_base(4,9,0)
 import qualified Control.Monad.Fail as Fail
@@ -13,7 +14,7 @@ import qualified Control.Monad.Reader as Reader
 
 import Prelude hiding (log)
 import Control.Monad (join, replicateM, when, zipWithM)
-import Control.Monad.TestFixture (TestFixture, TestFixtureT, unimplemented)
+import Test.Fixie (Fixie, FixieT, unimplemented)
 import Data.Char (isPunctuation, isSymbol)
 import Data.Default.Class (Default(..))
 import Data.List (foldl', nub, partition)
@@ -24,7 +25,7 @@ import Language.Haskell.TH.Syntax
 {-|
   A Template Haskell function that generates a fixture record type with a given
   name that reifies the set of typeclass dictionaries provided, as described in
-  the module documentation for "Control.Monad.TestFixture.TH". For example, the
+  the module documentation for "Control.Monad.Fixie.TH". For example, the
   following splice would create a new record type called @Fixture@ with fields
   and instances for typeclasses called @Foo@ and @Bar@:
 
@@ -103,8 +104,8 @@ mkFixtureTypeSynonyms fixtureName = do
   where
     unit = TupleT 0
     mkTypeSynonym suffix varBndr ty = TySynD (mkName (nameBase fixtureName ++ suffix)) varBndr ty
-    mkFixtureType log state = AppT (ConT fixtureName) (AppT (AppT (AppT (ConT ''TestFixture) (ConT fixtureName)) log) state)
-    mkFixtureTransformerType log state m = AppT (ConT fixtureName) (AppT (AppT (AppT (AppT (ConT ''TestFixtureT) (ConT fixtureName)) log) state) m)
+    mkFixtureType log state = AppT (ConT fixtureName) (AppT (AppT (AppT (ConT ''Fixie) (ConT fixtureName)) log) state)
+    mkFixtureTransformerType log state m = AppT (ConT fixtureName) (AppT (AppT (AppT (AppT (ConT ''FixieT) (ConT fixtureName)) log) state) m)
 
 mkDefaultInstance :: Name -> [VarStrictType] -> Q Dec
 mkDefaultInstance fixtureName fixtureFields = do
@@ -125,7 +126,7 @@ mkInstance classType fixtureName = do
   stateVar <- VarT <$> newName "s"
   mVar <- VarT <$> newName "m"
 
-  let fixtureWithoutVarsT = AppT (ConT ''TestFixtureT) (ConT fixtureName)
+  let fixtureWithoutVarsT = AppT (ConT ''FixieT) (ConT fixtureName)
   let fixtureT = AppT (AppT (AppT fixtureWithoutVarsT writerVar) stateVar) mVar
   let instanceHead = AppT classType fixtureT
 
@@ -296,7 +297,7 @@ unimplementedField fieldName = (fieldName, unimplementedE)
   where unimplementedE = AppE (VarE 'unimplemented) (LitE (StringL $ nameBase fieldName))
 
 {-|
-  Generates an implementation of a method within a 'TestFixture' typeclass
+  Generates an implementation of a method within a 'Fixie' typeclass
   instance for a generated fixture record. The implementation handles three
   things:
 

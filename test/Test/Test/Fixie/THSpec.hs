@@ -1,15 +1,14 @@
-{-# LANGUAGE CPP #-}
-#if MIN_VERSION_GLASGOW_HASKELL(8,0,0,0)
+{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
-module Test.Control.Monad.TestFixture.THSpec (spec) where
+module Test.Test.Fixie.THSpec (spec) where
 
 import Test.Hspec
 
@@ -19,9 +18,9 @@ import Control.Monad.Except (runExcept, throwError)
 import Control.Monad.Fail (MonadFail(..))
 import Language.Haskell.TH.Syntax
 
-import Control.Monad.TestFixture
-import Control.Monad.TestFixture.TH
-import Control.Monad.TestFixture.TH.Internal (methodNameToFieldName)
+import Test.Fixie
+import Test.Fixie.TH
+import Test.Fixie.TH.Internal (methodNameToFieldName)
 
 class MultiParam a b where
 
@@ -36,10 +35,10 @@ spec = do
             , _qNewName = \s -> return $ Name (OccName s) (NameU 0)
             , _qReify = \_ -> return $(lift =<< reify ''MultiParam)
             }
-      let result = runExcept $ unTestFixtureT (runQ $ mkFixture "Fixture" [ts| MultiParam |]) fixture
+      let result = runExcept $ unFixieT (runQ $ mkFixture "Fixture" [ts| MultiParam |]) fixture
       result `shouldBe` (Left $
            "mkFixture: cannot derive instance for multi-parameter typeclass\n"
-        ++ "      in: Test.Control.Monad.TestFixture.THSpec.MultiParam\n"
+        ++ "      in: Test.Test.Fixie.THSpec.MultiParam\n"
         ++ "      expected: * -> GHC.Types.Constraint\n"
         ++ "      given: * -> * -> GHC.Types.Constraint")
 
@@ -51,12 +50,3 @@ spec = do
     it "prepends a tilde to infix operators" $ do
       nameBase (methodNameToFieldName '(>>=)) `shouldBe` "~>>="
       nameBase (methodNameToFieldName '(<|>)) `shouldBe` "~<|>"
-
-#else
-module Test.Control.Monad.TestFixture.THSpec (spec) where
-
-import Test.Hspec
-
-spec :: Spec
-spec = return ()
-#endif

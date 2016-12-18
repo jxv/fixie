@@ -1,11 +1,6 @@
-{-# LANGUAGE CPP #-}
-
-#if MIN_VERSION_GLASGOW_HASKELL(8,0,0,0)
 {-# OPTIONS_GHC -fno-warn-unused-top-binds -fno-warn-redundant-constraints #-}
-#else
-{-# OPTIONS_GHC -fno-warn-unused-binds #-}
-#endif
 
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE KindSignatures #-}
@@ -14,13 +9,13 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Test.Control.Monad.TestFixtureSpec (spec) where
+module Test.Test.FixieSpec (spec) where
 
 import Test.Hspec
 
 import Control.Monad.Trans.Class (lift)
-import Control.Monad.TestFixture
-import Control.Monad.TestFixture.TH
+import Test.Fixie
+import Test.Fixie.TH
 
 newtype Id a = Id Int
 newtype DBError = DBError () deriving (Eq, Show)
@@ -56,28 +51,28 @@ mkFixture "Fixture" [ts| DB, HTTP, Throw |]
 
 -- At compile time, ensure the fixture type synonyms are generated.
 fixturePure :: FixturePure
-fixturePure = def :: Fixture (TestFixture Fixture () ())
+fixturePure = def :: Fixture (Fixie Fixture () ())
 
 fixtureLog :: FixtureLog log
-fixtureLog = def :: Fixture (TestFixture Fixture log ())
+fixtureLog = def :: Fixture (Fixie Fixture log ())
 
 fixtureState :: FixtureState state
-fixtureState = def :: Fixture (TestFixture Fixture () s)
+fixtureState = def :: Fixture (Fixie Fixture () s)
 
 fixtureLogState :: FixtureLogState log state
-fixtureLogState = def :: Fixture (TestFixture Fixture log state)
+fixtureLogState = def :: Fixture (Fixie Fixture log state)
 
 fixturePureT :: Monad m => FixturePureT m
-fixturePureT = def :: Fixture (TestFixtureT Fixture () () m)
+fixturePureT = def :: Fixture (FixieT Fixture () () m)
 
 fixtureLogT :: Monad m => FixtureLogT log m
-fixtureLogT = def :: Fixture (TestFixtureT Fixture log () m)
+fixtureLogT = def :: Fixture (FixieT Fixture log () m)
 
 fixtureStateT :: Monad m => FixtureStateT state m
-fixtureStateT = def :: Fixture (TestFixtureT Fixture () s m)
+fixtureStateT = def :: Fixture (FixieT Fixture () s m)
 
 fixtureLogStateT :: Monad m => FixtureLogStateT log state m
-fixtureLogStateT = def :: Fixture (TestFixtureT Fixture log state m)
+fixtureLogStateT = def :: Fixture (FixieT Fixture log state m)
 
 -- ensure generation of empty fixtures works
 mkFixture "EmptyFixture" []
@@ -96,12 +91,12 @@ spec = do
             , _insertRecord = \_ -> return $ Right (Id 42)
             , _sendRequest = \_ -> return $ Right (HTTPResponse 200)
             }
-      let result = unTestFixture (useDBAndHTTP User) fixture
+      let result = unFixie (useDBAndHTTP User) fixture
       result `shouldBe` Right User
 
     it "can handle partially applied multi parameter typeclasses" $ do
       let fixture = def { _firstParam = return True }
-      unTestFixture firstParam fixture `shouldBe` True
+      unFixie firstParam fixture `shouldBe` True
 
   describe "handle throws" $ do
     it "capture a thrown error message" $ let
@@ -113,6 +108,6 @@ spec = do
       throwExample :: Throw m => m ()
       throwExample = throwMessage "error message"
 
-      actual = unTestFixtureT throwExample throwFixture
+      actual = unFixieT throwExample throwFixture
       expected = Left "error message"
       in actual `shouldBe` expected

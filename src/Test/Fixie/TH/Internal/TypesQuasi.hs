@@ -1,8 +1,9 @@
 {-# OPTIONS_HADDOCK hide, not-home #-}
+
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
 
-module Control.Monad.TestFixture.TH.Internal.TypesQuasi (ts) where
+module Test.Fixie.TH.Internal.TypesQuasi (ts) where
 
 import Control.Monad ((<=<))
 import Language.Haskell.Exts.Lexer
