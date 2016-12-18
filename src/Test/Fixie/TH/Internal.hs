@@ -12,10 +12,11 @@ import qualified Control.Monad.Reader as Reader
 
 import Prelude hiding (log)
 import Control.Monad (join, replicateM, when, zipWithM)
-import Test.Fixie (Fixie, FixieT, unimplemented)
+import Test.Fixie (Fixie, FixieT, unimplemented, captureFunctionCall)
 import Data.Char (isPunctuation, isSymbol)
 import Data.Default.Class (Default(..))
 import Data.List (foldl', nub, partition)
+import Data.Text (pack)
 import GHC.Exts (Constraint)
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax
@@ -324,10 +325,12 @@ mkDictInstanceFunc (SigD name typ) = do
   let pats = map VarP argNames
 
   let askFunc = VarE (methodNameToFieldName name)
+  let nameString = LitE (StringL (nameBase name))
   let vars = map VarE argNames
 
   implE <- [e|do
     fn <- Reader.asks $(return askFunc)
+    captureFunctionCall $ pack $(return nameString)
     $(return $ applyE (VarE 'fn) vars)|]
 
   let funClause = Clause pats (NormalB implE) []

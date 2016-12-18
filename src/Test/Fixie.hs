@@ -36,6 +36,7 @@ module Test.Fixie (
   , unimplemented
   , log
   , track
+  , captureFunctionCall
   ) where
 
 import Prelude hiding (log)
@@ -53,7 +54,11 @@ import Data.Text (Text)
 
 type Fixie fixture err log state = FixieT fixture err log state Identity
 
-newtype FixieT fixture err log state m a = FixieT { getRWST :: ExceptT err (RWST (fixture (FixieT fixture err log state m)) [log] state (WriterT [Text] m)) a }
+type Tracker = WriterT [Text]
+
+type FunctionCalls = WriterT [Text]
+
+newtype FixieT fixture err log state m a = FixieT { getRWST :: ExceptT err (RWST (fixture (FixieT fixture err log state m)) [log] state (Tracker (FunctionCalls m))) a }
   deriving
     ( Functor
     , Applicative
@@ -63,11 +68,11 @@ newtype FixieT fixture err log state m a = FixieT { getRWST :: ExceptT err (RWST
     , MonadState state
     )
 
-assumeRight :: Monad m => FixieT fixture err log state m a -> (RWST (fixture (FixieT fixture err log state m)) [log] state (WriterT [Text] m)) a
+assumeRight :: Monad m => FixieT fixture err log state m a -> (RWST (fixture (FixieT fixture err log state m)) [log] state (Tracker (FunctionCalls m))) a
 assumeRight = fmap fromRight' . runExceptT . getRWST
 
 instance MonadTrans (FixieT fixture error log state) where
-  lift = FixieT . lift . lift . lift
+  lift = FixieT . lift . lift . lift . lift
 
 instance MonadError e m => MonadError e (FixieT fixture err log state m) where
   throwError = lift . throwError
@@ -80,13 +85,13 @@ logFixieT :: Monad m => FixieT fixture () log () m a -> fixture (FixieT fixture 
 logFixieT stack env = fmap snd (evalFixieT stack env)
 
 evalFixieT :: Monad m => FixieT fixture () log () m a -> fixture (FixieT fixture () log () m) -> m (a, [log])
-evalFixieT stack env = fmap fst . runWriterT $ evalRWST (assumeRight stack) env ()
+evalFixieT stack env = (fmap fst . runWriterT) $ (fmap fst . runWriterT) $ evalRWST (assumeRight stack) env ()
 
 execFixieT :: Monad m => FixieT fixture () log state m a -> fixture (FixieT fixture () log state m) -> state -> m (state, [log])
-execFixieT stack env st = fmap fst . runWriterT $ execRWST (assumeRight stack) env st
+execFixieT stack env st = (fmap fst . runWriterT) $ (fmap fst . runWriterT) $ execRWST (assumeRight stack) env st
 
 runFixieT :: Monad m => FixieT fixture () log state m a -> fixture (FixieT fixture () log state m) -> state -> m (a, state, [log])
-runFixieT stack env st = fmap fst . runWriterT $ runRWST (assumeRight stack) env st
+runFixieT stack env st = (fmap fst . runWriterT) $ (fmap fst . runWriterT) $ runRWST (assumeRight stack) env st
 
 unFixie :: Fixie fixture () () () a -> fixture (Fixie fixture () () ()) -> a
 unFixie stack env = runIdentity (unFixieT stack env)
@@ -149,3 +154,6 @@ log = tell . pure
 
 track :: Monad m => Text -> FixieT fixture err log state m ()
 track = FixieT . lift . lift . tell . (:[])
+
+captureFunctionCall :: Monad m => Text -> FixieT fixture err log state m ()
+captureFunctionCall = FixieT . lift . lift . lift . tell . (:[])
