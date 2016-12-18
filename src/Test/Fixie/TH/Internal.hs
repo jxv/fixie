@@ -7,9 +7,7 @@
 
 module Test.Fixie.TH.Internal where
 
-#if MIN_VERSION_base(4,9,0)
 import qualified Control.Monad.Fail as Fail
-#endif
 import qualified Control.Monad.Reader as Reader
 
 import Prelude hiding (log)
@@ -404,30 +402,13 @@ applyE = foldl' AppE
 | without writing CPP everywhere and ending up with a small mess.              |
 |------------------------------------------------------------------------------}
 
-#if MIN_VERSION_base(4,9,0)
 type MonadFail = Fail.MonadFail
-#else
-type MonadFail = Monad
-#endif
 
 mkInstanceD :: Cxt -> Type -> [Dec] -> Dec
-#if MIN_VERSION_template_haskell(2,11,0)
 mkInstanceD = InstanceD Nothing
-#else
-mkInstanceD = InstanceD
-#endif
 
 mkDataD :: Cxt -> Name -> [TyVarBndr] -> [Con] -> Dec
-#if MIN_VERSION_template_haskell(2,11,0)
 mkDataD a b c d = DataD a b c Nothing d []
-#else
-mkDataD a b c d = DataD a b c d []
-#endif
 
-#if MIN_VERSION_template_haskell(2,11,0)
 noStrictness :: Bang
 noStrictness = Bang NoSourceUnpackedness NoSourceStrictness
-#else
-noStrictness :: Strict
-noStrictness = NotStrict
-#endif
