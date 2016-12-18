@@ -42,13 +42,14 @@ import Prelude hiding (log)
 import qualified Control.Monad.Writer.Class
 import qualified Control.Monad.State.Class
 
-import Control.Monad.Error.Class
+import Control.Monad.Except
 import Control.Monad.RWS
 import Data.Functor.Identity
+import Data.Either.Combinators (fromRight')
 
 type Fixie fixture log state = FixieT fixture log state Identity
 
-newtype FixieT fixture log state m a = FixieT { getRWST :: RWST (fixture (FixieT fixture log state m)) [log] state m a }
+newtype FixieT fixture log state m a = FixieT { getRWST :: ExceptT () (RWST (fixture (FixieT fixture log state m)) [log] state m) a }
   deriving
     ( Functor
     , Applicative
@@ -58,12 +59,15 @@ newtype FixieT fixture log state m a = FixieT { getRWST :: RWST (fixture (FixieT
     , MonadState state
     )
 
+assumeRight :: Monad m => FixieT fixture log state m a -> (RWST (fixture (FixieT fixture log state m)) [log] state m) a
+assumeRight = fmap fromRight' . runExceptT . getRWST
+
 instance MonadTrans (FixieT fixture log state) where
-  lift = FixieT . lift
+  lift = FixieT . lift . lift
 
 instance MonadError e m => MonadError e (FixieT fixture log state m) where
   throwError = lift . throwError
-  catchError m h = FixieT (getRWST m `catchError` \e -> getRWST (h e))
+  catchError m h = FixieT  $ ExceptT $ fmap Right (assumeRight m `catchError` \e -> assumeRight (h e))
 
 unFixieT :: Monad m => FixieT fixture () () m a -> fixture (FixieT fixture () () m) -> m a
 unFixieT stack env = fmap fst (evalFixieT stack env)
@@ -72,18 +76,15 @@ logFixieT :: Monad m => FixieT fixture log () m a -> fixture (FixieT fixture log
 logFixieT stack env = fmap snd (evalFixieT stack env)
 
 evalFixieT :: Monad m => FixieT fixture log () m a -> fixture (FixieT fixture log () m) -> m (a, [log])
-evalFixieT stack env = evalRWST (getRWST stack) env ()
+evalFixieT stack env = evalRWST (assumeRight stack) env ()
 
 execFixieT :: Monad m => FixieT fixture log state m a -> fixture (FixieT fixture log state m) -> state -> m (state, [log])
-execFixieT stack = execRWST (getRWST stack)
+execFixieT stack = execRWST (assumeRight stack)
 
 runFixieT :: Monad m => FixieT fixture log state m a -> fixture (FixieT fixture log state m) -> state -> m (a, state, [log])
-runFixieT stack = runRWST (getRWST stack)
+runFixieT stack = runRWST (assumeRight stack)
 
-unFixie
-  :: Fixie fixture () () a         -- ^ the monadic computation to run
-  -> fixture (Fixie fixture () ()) -- ^ the fixture dictionary to use
-  -> a                                   -- ^ the computation’s result
+unFixie :: Fixie fixture () () a -> fixture (Fixie fixture () ()) -> a
 unFixie stack env = runIdentity (unFixieT stack env)
 
 logFixie :: Fixie fixture log () a -> fixture (Fixie fixture log ()) -> [log]
