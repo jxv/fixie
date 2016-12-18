@@ -82,14 +82,14 @@ mkFixtureTypeSynonyms fixtureName = do
   let logTVBndr = PlainTV logName
   let stateTVBndr = PlainTV stateName
 
-  let fixturePure = mkTypeSynonym "Pure" [] (mkFixtureType unit unit)
-  let fixtureLog = mkTypeSynonym "Log" [logTVBndr] (mkFixtureType logVar unit)
-  let fixtureState = mkTypeSynonym "State" [stateTVBndr] (mkFixtureType unit stateVar)
-  let fixtureLogState = mkTypeSynonym "LogState" [logTVBndr, stateTVBndr] (mkFixtureType logVar stateVar)
-  let fixturePureT = mkTypeSynonym "PureT" [mTVBndr] (mkFixtureTransformerType unit unit mVar)
-  let fixtureLogT = mkTypeSynonym "LogT" [logTVBndr, mTVBndr] (mkFixtureTransformerType logVar unit mVar)
-  let fixtureStateT = mkTypeSynonym "StateT" [stateTVBndr, mTVBndr] (mkFixtureTransformerType unit stateVar mVar)
-  let fixtureLogStateT = mkTypeSynonym "LogStateT" [logTVBndr, stateTVBndr, mTVBndr] (mkFixtureTransformerType logVar stateVar mVar)
+  let fixturePure = mkTypeSynonym "Pure" [] (mkFixtureType unit unit unit)
+  let fixtureLog = mkTypeSynonym "Log" [logTVBndr] (mkFixtureType unit logVar unit)
+  let fixtureState = mkTypeSynonym "State" [stateTVBndr] (mkFixtureType unit unit stateVar)
+  let fixtureLogState = mkTypeSynonym "LogState" [logTVBndr, stateTVBndr] (mkFixtureType unit logVar stateVar)
+  let fixturePureT = mkTypeSynonym "PureT" [mTVBndr] (mkFixtureTransformerType unit unit unit mVar)
+  let fixtureLogT = mkTypeSynonym "LogT" [logTVBndr, mTVBndr] (mkFixtureTransformerType unit logVar unit mVar)
+  let fixtureStateT = mkTypeSynonym "StateT" [stateTVBndr, mTVBndr] (mkFixtureTransformerType unit unit stateVar mVar)
+  let fixtureLogStateT = mkTypeSynonym "LogStateT" [logTVBndr, stateTVBndr, mTVBndr] (mkFixtureTransformerType unit logVar stateVar mVar)
 
   return
     [ fixturePure
@@ -104,8 +104,8 @@ mkFixtureTypeSynonyms fixtureName = do
   where
     unit = TupleT 0
     mkTypeSynonym suffix varBndr ty = TySynD (mkName (nameBase fixtureName ++ suffix)) varBndr ty
-    mkFixtureType log state = AppT (ConT fixtureName) (AppT (AppT (AppT (ConT ''Fixie) (ConT fixtureName)) log) state)
-    mkFixtureTransformerType log state m = AppT (ConT fixtureName) (AppT (AppT (AppT (AppT (ConT ''FixieT) (ConT fixtureName)) log) state) m)
+    mkFixtureType err log state = AppT (ConT fixtureName) (AppT (AppT (AppT (AppT (ConT ''Fixie) (ConT fixtureName)) err) log) state)
+    mkFixtureTransformerType err log state m = AppT (ConT fixtureName) (AppT (AppT (AppT (AppT (AppT (ConT ''FixieT) (ConT fixtureName)) err) log) state) m)
 
 mkDefaultInstance :: Name -> [VarStrictType] -> Q Dec
 mkDefaultInstance fixtureName fixtureFields = do
@@ -122,12 +122,13 @@ mkDefaultInstance fixtureName fixtureFields = do
 
 mkInstance :: Type -> Name -> Q Dec
 mkInstance classType fixtureName = do
+  errVar <- VarT <$> newName "err"
   writerVar <- VarT <$> newName "w"
   stateVar <- VarT <$> newName "s"
   mVar <- VarT <$> newName "m"
 
   let fixtureWithoutVarsT = AppT (ConT ''FixieT) (ConT fixtureName)
-  let fixtureT = AppT (AppT (AppT fixtureWithoutVarsT writerVar) stateVar) mVar
+  let fixtureT = AppT (AppT (AppT (AppT fixtureWithoutVarsT errVar) writerVar) stateVar) mVar
   let instanceHead = AppT classType fixtureT
 
   classInfo <- reify (unappliedTypeName classType)

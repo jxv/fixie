@@ -51,28 +51,28 @@ mkFixture "Fixture" [ts| DB, HTTP, Throw |]
 
 -- At compile time, ensure the fixture type synonyms are generated.
 fixturePure :: FixturePure
-fixturePure = def :: Fixture (Fixie Fixture () ())
+fixturePure = def :: Fixture (Fixie Fixture () () ())
 
 fixtureLog :: FixtureLog log
-fixtureLog = def :: Fixture (Fixie Fixture log ())
+fixtureLog = def :: Fixture (Fixie Fixture () log ())
 
 fixtureState :: FixtureState state
-fixtureState = def :: Fixture (Fixie Fixture () s)
+fixtureState = def :: Fixture (Fixie Fixture () () s)
 
 fixtureLogState :: FixtureLogState log state
-fixtureLogState = def :: Fixture (Fixie Fixture log state)
+fixtureLogState = def :: Fixture (Fixie Fixture () log state)
 
 fixturePureT :: Monad m => FixturePureT m
-fixturePureT = def :: Fixture (FixieT Fixture () () m)
+fixturePureT = def :: Fixture (FixieT Fixture () () () m)
 
 fixtureLogT :: Monad m => FixtureLogT log m
-fixtureLogT = def :: Fixture (FixieT Fixture log () m)
+fixtureLogT = def :: Fixture (FixieT Fixture () log () m)
 
 fixtureStateT :: Monad m => FixtureStateT state m
-fixtureStateT = def :: Fixture (FixieT Fixture () s m)
+fixtureStateT = def :: Fixture (FixieT Fixture () () s m)
 
 fixtureLogStateT :: Monad m => FixtureLogStateT log state m
-fixtureLogStateT = def :: Fixture (FixieT Fixture log state m)
+fixtureLogStateT = def :: Fixture (FixieT Fixture () log state m)
 
 -- ensure generation of empty fixtures works
 mkFixture "EmptyFixture" []
