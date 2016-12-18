@@ -71,14 +71,17 @@ mkFixtureRecord fixtureName classTypes = do
 mkFixtureTypeSynonyms :: Name -> Q [Dec]
 mkFixtureTypeSynonyms fixtureName = do
   mName <- newName "m"
+  _errName <- newName "err"
   logName <- newName "log"
   stateName <- newName "state"
 
   let mVar = VarT mName
+  let _errVar = VarT _errName
   let logVar = VarT logName
   let stateVar = VarT stateName
 
   let mTVBndr = PlainTV mName
+  let _errTVBndr = PlainTV _errName
   let logTVBndr = PlainTV logName
   let stateTVBndr = PlainTV stateName
 

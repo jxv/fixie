@@ -46,6 +46,7 @@ library
     , haskell-src-meta
     , mtl
     , template-haskell >= 2.10 && < 2.12
+    , text
     , th-orphans
 
 source-repository head
