@@ -10,10 +10,6 @@ cache:
 # cache file per set of arguments.
 matrix:
   include:
-  - env: ARGS="--stack-yaml stack-7.10.yaml"
-    compiler: ": #stack 7.10.3"
-    addons: { apt: { packages: [ghc-7.10.3], sources: [hvr-ghc] } }
-
   - env: ARGS="--stack-yaml stack-8.0.yaml"
     compiler: ": #stack 8.0.1"
     addons: { apt: { packages: [ghc-8.0.1], sources: [hvr-ghc] } }
