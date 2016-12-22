@@ -51,28 +51,28 @@ mkFixture "Fixture" [ts| DB, HTTP, Throw |]
 
 -- At compile time, ensure the fixture type synonyms are generated.
 fixturePure :: FixturePure
-fixturePure = def :: Fixture (Fixie Fixture () () ())
+fixturePure = def :: Fixture (FixieIdentity Fixture () () ())
 
 fixtureLog :: FixtureLog log
-fixtureLog = def :: Fixture (Fixie Fixture () log ())
+fixtureLog = def :: Fixture (FixieIdentity Fixture () log ())
 
 fixtureState :: FixtureState state
-fixtureState = def :: Fixture (Fixie Fixture () () s)
+fixtureState = def :: Fixture (FixieIdentity Fixture () () s)
 
 fixtureLogState :: FixtureLogState log state
-fixtureLogState = def :: Fixture (Fixie Fixture () log state)
+fixtureLogState = def :: Fixture (FixieIdentity Fixture () log state)
 
 fixturePureT :: Monad m => FixturePureT m
-fixturePureT = def :: Fixture (FixieT Fixture () () () m)
+fixturePureT = def :: Fixture (FixieY Fixture () () () m)
 
 fixtureLogT :: Monad m => FixtureLogT log m
-fixtureLogT = def :: Fixture (FixieT Fixture () log () m)
+fixtureLogT = def :: Fixture (FixieY Fixture () log () m)
 
 fixtureStateT :: Monad m => FixtureStateT state m
-fixtureStateT = def :: Fixture (FixieT Fixture () () s m)
+fixtureStateT = def :: Fixture (FixieY Fixture () () s m)
 
 fixtureLogStateT :: Monad m => FixtureLogStateT log state m
-fixtureLogStateT = def :: Fixture (FixieT Fixture () log state m)
+fixtureLogStateT = def :: Fixture (FixieY Fixture () log state m)
 
 -- ensure generation of empty fixtures works
 mkFixture "EmptyFixture" []
@@ -108,6 +108,6 @@ spec = do
       throwExample :: Throw m => m ()
       throwExample = throwMessage "error message"
 
-      actual = unFixieT throwExample throwFixture
+      actual = unFixieY throwExample throwFixture
       expected = Left "error message"
       in actual `shouldBe` expected

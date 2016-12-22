@@ -12,7 +12,7 @@ import qualified Control.Monad.Reader as Reader
 
 import Prelude hiding (log)
 import Control.Monad (join, replicateM, when, zipWithM)
-import Test.Fixie (Fixie, FixieT, unimplemented, captureFunctionCall)
+import Test.Fixie (FixieIdentity, FixieY, unimplemented, captureFunctionCall)
 import Data.Char (isPunctuation, isSymbol)
 import Data.Default.Class (Default(..))
 import Data.List (foldl', nub, partition)
@@ -106,8 +106,8 @@ mkFixtureTypeSynonyms fixtureName = do
   where
     unit = TupleT 0
     mkTypeSynonym suffix varBndr ty = TySynD (mkName (nameBase fixtureName ++ suffix)) varBndr ty
-    mkFixtureType err log state = AppT (ConT fixtureName) (AppT (AppT (AppT (AppT (ConT ''Fixie) (ConT fixtureName)) err) log) state)
-    mkFixtureTransformerType err log state m = AppT (ConT fixtureName) (AppT (AppT (AppT (AppT (AppT (ConT ''FixieT) (ConT fixtureName)) err) log) state) m)
+    mkFixtureType err log state = AppT (ConT fixtureName) (AppT (AppT (AppT (AppT (ConT ''FixieIdentity) (ConT fixtureName)) err) log) state)
+    mkFixtureTransformerType err log state m = AppT (ConT fixtureName) (AppT (AppT (AppT (AppT (AppT (ConT ''FixieY) (ConT fixtureName)) err) log) state) m)
 
 mkDefaultInstance :: Name -> [VarStrictType] -> Q Dec
 mkDefaultInstance fixtureName fixtureFields = do
@@ -129,7 +129,7 @@ mkInstance classType fixtureName = do
   stateVar <- VarT <$> newName "s"
   mVar <- VarT <$> newName "m"
 
-  let fixtureWithoutVarsT = AppT (ConT ''FixieT) (ConT fixtureName)
+  let fixtureWithoutVarsT = AppT (ConT ''FixieY) (ConT fixtureName)
   let fixtureT = AppT (AppT (AppT (AppT fixtureWithoutVarsT errVar) writerVar) stateVar) mVar
   let instanceHead = AppT classType fixtureT
 

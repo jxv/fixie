@@ -35,7 +35,7 @@ spec = do
             , _qNewName = \s -> return $ Name (OccName s) (NameU 0)
             , _qReify = \_ -> return $(lift =<< reify ''MultiParam)
             }
-      let result = runExcept $ unFixieT (runQ $ mkFixture "Fixture" [ts| MultiParam |]) fixture
+      let result = runExcept $ unFixieY (runQ $ mkFixture "Fixture" [ts| MultiParam |]) fixture
       result `shouldBe` (Left $
            "mkFixture: cannot derive instance for multi-parameter typeclass\n"
         ++ "      in: Test.Test.Fixie.THSpec.MultiParam\n"
