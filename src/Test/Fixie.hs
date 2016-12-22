@@ -7,9 +7,9 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Test.Fixie (
+module Test.Fixie
   -- * The Fixie monad
-    FixieIdentity
+  ( FixieIdentity
   , unFixie
   , logFixie
   , evalFixie
@@ -26,17 +26,15 @@ module Test.Fixie (
   , track
   , captureFunctionCall
 
-  -- 
+  -- New hotness
   , FixieT
   , FixieM
   , toSet
   , note
-  --
   , getFixture
   , getFunction
   , captureCall
   , unimplemented
-  --
   , outputNotesFunctionsT
   , outputNotesFunctionsetT
   , outputFunctionsNotesT
@@ -82,9 +80,6 @@ module Test.Fixie (
   , notesT
   , functionsT
   , functionsetT
-  ) where
-
-{-
   , outputNotesFunctionsM
   , outputNotesFunctionsetM
   , outputFunctionsNotesM
@@ -131,7 +126,6 @@ module Test.Fixie (
   , functionsM
   , functionsetM
   ) where
--}
 
 import Prelude hiding (log)
 
@@ -387,53 +381,145 @@ functionsT f x = (\(_,_,c) -> c) <$> outputNotesFunctions f x
 functionsetT :: Monad m => f (FixieT f e m) -> FixieT f e m a -> m (Set Function)
 functionsetT f x = (\(_,_,c) -> toSet c) <$> outputNotesFunctions f x
 
-{-
-outputNotesFunctionsM
-outputNotesFunctionsetM
-outputFunctionsNotesM
-outputFunctionsetNotesM
-valueNotesFunctionsM
-valueNotesFunctionsetM
-valueFunctionsNotesM
-valueFunctionsetNotesM
-notesOutputFunctionsM
-notesOutputFunctionsetM
-notesValueFunctionsM
-notesValueFunctionsetM
-notesFunctionsOutputM
-notesFunctionsetOutputM
-notesFunctionsValueM
-notesFunctionsetValueM
-functionsOutputNotesM
-functionsValueNotesM
-functionsNotesOutputM
-functionsNotesValueM
-functionsetOutputNotesM
-functionsetValueNotesM
-functionsetNotesOutputM
-functionsetNotesValueM
-outputNotesM
-outputFunctionsM
-outputFunctionsetM
-valueNotesM
-valueFunctionsM
-valueFunctionsetM
-notesOutputM
-notesValueM
-notesFunctionsM
-notesFunctionsetM
-functionsOutputM
-functionsValueM
-functionsNotesM
-functionsetOutputM
-functionsetValueM
-functionsetNotesM
-outputM
-valueM
-notesM
-functionsM
-functionsetM
--}
+--------
+
+fixieM :: (a -> b -> Identity c) -> a -> b -> c
+fixieM y f x = runIdentity (y f x)
+
+outputNotesFunctionsM :: f (FixieM f e) -> FixieM f e a -> (Either e a, [Note], [Function])
+outputNotesFunctionsM = fixieM outputNotesFunctionsT 
+
+outputNotesFunctionsetM :: f (FixieM f e) -> FixieM f e a -> (Either e a, [Note], Set Function)
+outputNotesFunctionsetM = fixieM outputNotesFunctionsetT
+
+outputFunctionsNotesM :: f (FixieM f e) -> FixieM f e a -> (Either e a, [Function], [Note])
+outputFunctionsNotesM = fixieM outputFunctionsNotesT
+
+outputFunctionsetNotesM :: f (FixieM f e) -> FixieM f e a -> (Either e a, Set Function, [Note])
+outputFunctionsetNotesM = fixieM outputFunctionsetNotesT
+
+valueNotesFunctionsM :: f (FixieM f Void) -> FixieM f Void a -> (a, [Note], [Function])
+valueNotesFunctionsM = fixieM valueNotesFunctionsT
+
+valueNotesFunctionsetM :: f (FixieM f Void) -> FixieM f Void a -> (a, [Note], Set Function)
+valueNotesFunctionsetM = fixieM valueNotesFunctionsetT
+
+valueFunctionsNotesM :: f (FixieM f Void) -> FixieM f Void a -> (a, [Function], [Note])
+valueFunctionsNotesM = fixieM valueFunctionsNotesT
+
+valueFunctionsetNotesM :: f (FixieM f Void) -> FixieM f Void a -> (a, Set Function, [Note])
+valueFunctionsetNotesM = fixieM valueFunctionsetNotesT
+
+notesOutputFunctionsM :: f (FixieM f e) -> FixieM f e a -> ([Note], Either e a, [Function])
+notesOutputFunctionsM = fixieM notesOutputFunctionsT
+
+notesOutputFunctionsetM :: f (FixieM f e) -> FixieM f e a -> ([Note], Either e a, Set Function)
+notesOutputFunctionsetM = fixieM notesOutputFunctionsetT
+
+notesValueFunctionsM :: f (FixieM f Void) -> FixieM f Void a -> ([Note], a, [Function])
+notesValueFunctionsM = fixieM notesValueFunctionsT
+
+notesValueFunctionsetM :: f (FixieM f Void) -> FixieM f Void a -> ([Note], a, Set Function)
+notesValueFunctionsetM = fixieM notesValueFunctionsetT
+
+notesFunctionsOutputM :: f (FixieM f e) -> FixieM f e a -> ([Note], [Function], Either e a)
+notesFunctionsOutputM = fixieM notesFunctionsOutputT
+
+notesFunctionsetOutputM :: f (FixieM f e) -> FixieM f e a -> ([Note], Set Function,  Either e a)
+notesFunctionsetOutputM = fixieM notesFunctionsetOutputT
+
+notesFunctionsValueM :: f (FixieM f Void) -> FixieM f Void a -> ([Note], [Function], a)
+notesFunctionsValueM = fixieM notesFunctionsValueT
+
+notesFunctionsetValueM :: f (FixieM f Void) -> FixieM f Void a -> ([Note], Set Function, a)
+notesFunctionsetValueM = fixieM notesFunctionsetValueT
+
+functionsOutputNotesM :: f (FixieM f e) -> FixieM f e a -> ([Function], Either e a, [Note])
+functionsOutputNotesM = fixieM functionsOutputNotesT
+
+functionsValueNotesM :: f (FixieM f Void) -> FixieM f Void a -> ([Function], a, [Note])
+functionsValueNotesM = fixieM functionsValueNotesT
+
+functionsNotesOutputM :: f (FixieM f e) -> FixieM f e a -> ([Function], [Note], Either e a)
+functionsNotesOutputM = fixieM functionsNotesOutputT
+
+functionsNotesValueM :: f (FixieM f Void) -> FixieM f Void a -> ([Function], [Note], a)
+functionsNotesValueM = fixieM functionsNotesValueT
+
+functionsetOutputNotesM :: f (FixieM f e) -> FixieM f e a -> (Set Function, Either e a, [Note])
+functionsetOutputNotesM = fixieM functionsetOutputNotesT
+
+functionsetValueNotesM :: f (FixieM f Void) -> FixieM f Void a -> (Set Function, a, [Note])
+functionsetValueNotesM = fixieM functionsetValueNotesT
+
+functionsetNotesOutputM :: f (FixieM f e) -> FixieM f e a -> (Set Function, [Note], Either e a)
+functionsetNotesOutputM = fixieM functionsetNotesOutputT
+
+functionsetNotesValueM :: f (FixieM f Void) -> FixieM f Void a -> (Set Function, [Note], a)
+functionsetNotesValueM = fixieM functionsetNotesValueT
+
+outputNotesM :: f (FixieM f e) -> FixieM f e a -> (Either e a, [Note])
+outputNotesM = fixieM outputNotesT
+
+outputFunctionsM :: f (FixieM f e) -> FixieM f e a -> (Either e a, [Function])
+outputFunctionsM = fixieM outputFunctionsT
+
+outputFunctionsetM :: f (FixieM f e) -> FixieM f e a -> (Either e a, Set Function)
+outputFunctionsetM = fixieM outputFunctionsetT
+
+valueNotesM :: f (FixieM f Void) -> FixieM f Void a -> (a, [Note])
+valueNotesM = fixieM valueNotesT
+
+valueFunctionsM :: f (FixieM f Void) -> FixieM f Void a -> (a, [Function])
+valueFunctionsM = fixieM valueFunctionsT
+
+valueFunctionsetM :: f (FixieM f Void) -> FixieM f Void a -> (a, Set Function)
+valueFunctionsetM = fixieM valueFunctionsetT
+
+notesOutputM :: f (FixieM f e) -> FixieM f e a -> ([Note], Either e a)
+notesOutputM = fixieM notesOutputT
+
+notesValueM :: f (FixieM f Void) -> FixieM f Void a -> ([Note], a)
+notesValueM = fixieM notesValueT
+
+notesFunctionsM :: f (FixieM f e) -> FixieM f e a -> ([Note], [Function])
+notesFunctionsM = fixieM notesFunctionsT
+
+notesFunctionsetM :: f (FixieM f e) -> FixieM f e a -> ([Note], Set Function)
+notesFunctionsetM = fixieM notesFunctionsetT
+
+functionsOutputM :: f (FixieM f e) -> FixieM f e a -> ([Function], Either e a)
+functionsOutputM = fixieM functionsOutputT
+
+functionsValueM :: f (FixieM f Void) -> FixieM f Void a -> ([Function], a)
+functionsValueM = fixieM functionsValueT
+
+functionsNotesM :: f (FixieM f e) -> FixieM f e a -> ([Function], [Note])
+functionsNotesM = fixieM functionsNotesT
+
+functionsetOutputM :: f (FixieM f e) -> FixieM f e a -> (Set Function, Either e a)
+functionsetOutputM = fixieM functionsetOutputT
+
+functionsetValueM :: f (FixieM f Void) -> FixieM f Void a -> (Set Function, a)
+functionsetValueM = fixieM functionsetValueT
+
+functionsetNotesM :: f (FixieM f e) -> FixieM f e a -> (Set Function, [Note])
+functionsetNotesM = fixieM functionsetNotesT
+
+outputM :: f (FixieM f e) -> FixieM f e a -> (Either e a)
+outputM = fixieM outputT
+
+valueM :: f (FixieM f Void) -> FixieM f Void a -> a
+valueM = fixieM valueT
+
+notesM :: f (FixieM f e) -> FixieM f e a -> [Note]
+notesM = fixieM notesT
+
+functionsM :: f (FixieM f e) -> FixieM f e a -> [Function]
+functionsM = fixieM functionsT
+
+functionsetM :: f (FixieM f e) -> FixieM f e a -> (Set Function)
+functionsetM = fixieM functionsetT
 
 ----
 
