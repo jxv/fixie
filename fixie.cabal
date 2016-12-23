@@ -3,7 +3,7 @@ name:
 version:
   0.0.0
 synopsis:
-  Opininated testing framework
+  Opininated testing framework for mtl style (spies, stubs, and mocks)
 description:
   Please see README.md
 homepage:
