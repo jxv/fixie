@@ -11,7 +11,7 @@ import qualified Control.Monad.Fail as Fail
 
 import Prelude hiding (log)
 import Control.Monad (join, replicateM, when, zipWithM)
-import Test.Fixie (FixieT, Call(..), Function(..), unimplemented, captureCall, getFunction)
+import Test.Fixie.Internal (FixieT, Call(..), Function(..), unimplemented, captureCall, getFunction)
 import Data.Char (isPunctuation, isSymbol)
 import Data.Default.Class (Default(..))
 import Data.List (foldl', nub, partition)

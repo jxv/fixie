@@ -35,6 +35,7 @@ library
   ghc-options: -Wall
   exposed-modules:
     Test.Fixie
+    Test.Fixie.Internal
     Test.Fixie.TH
     Test.Fixie.TH.Internal
     Test.Fixie.TH.Internal.TypesQuasi
