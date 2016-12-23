@@ -19,8 +19,7 @@ import Control.Monad.Fail (MonadFail(..))
 import Language.Haskell.TH.Syntax
 
 import Test.Fixie
-import Test.Fixie.TH
-import Test.Fixie.TH.Internal (methodNameToFieldName)
+import Test.Fixie.Internal.TH (methodNameToFieldName)
 
 class MultiParam a b where
 

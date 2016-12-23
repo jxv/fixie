@@ -3,7 +3,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
 
-module Test.Fixie.TH.Internal.TypesQuasi (ts) where
+module Test.Fixie.Internal.TH.TypesQuasi (ts) where
 
 import Control.Monad ((<=<))
 import Language.Haskell.Exts.Lexer

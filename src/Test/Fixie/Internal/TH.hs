@@ -5,11 +5,10 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TupleSections #-}
 
-module Test.Fixie.TH.Internal where
+module Test.Fixie.Internal.TH where
 
 import qualified Control.Monad.Fail as Fail
 
-import Prelude hiding (log)
 import Control.Monad (join, replicateM, when, zipWithM)
 import Test.Fixie.Internal (FixieT, Call(..), Function(..), unimplemented, captureCall, getFunction)
 import Data.Char (isPunctuation, isSymbol)

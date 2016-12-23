@@ -23,7 +23,6 @@ category:
 build-type:
   Simple
 extra-source-files:
-  CHANGELOG.md
   LICENSE
   README.md
 cabal-version:
@@ -36,9 +35,8 @@ library
   exposed-modules:
     Test.Fixie
     Test.Fixie.Internal
-    Test.Fixie.TH
-    Test.Fixie.TH.Internal
-    Test.Fixie.TH.Internal.TypesQuasi
+    Test.Fixie.Internal.TH
+    Test.Fixie.Internal.TH.TypesQuasi
   build-depends:
       base >= 4.7 && < 5
     , containers

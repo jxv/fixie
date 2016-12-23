@@ -17,7 +17,6 @@ import Test.Hspec
 import Control.Monad.Except (throwError, lift)
 import Data.Void (Void)
 import Test.Fixie
-import Test.Fixie.TH
 
 
 newtype Id a = Id Int
