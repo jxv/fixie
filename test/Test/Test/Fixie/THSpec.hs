@@ -14,7 +14,7 @@ import Test.Hspec
 
 import Control.Applicative ((<|>))
 import Control.Monad (when)
-import Control.Monad.Except (runExcept, throwError)
+import Control.Monad.Except (throwError)
 import Control.Monad.Fail (MonadFail(..))
 import Language.Haskell.TH.Syntax
 
@@ -35,7 +35,7 @@ spec = do
             , _qNewName = \s -> return $ Name (OccName s) (NameU 0)
             , _qReify = \_ -> return $(lift =<< reify ''MultiParam)
             }
-      let result = runExcept $ unFixieY (runQ $ mkFixture "Fixture" [ts| MultiParam |]) fixture
+      let result = outputM fixture (runQ $ mkFixture "Fixture" [ts| MultiParam |])
       result `shouldBe` (Left $
            "mkFixture: cannot derive instance for multi-parameter typeclass\n"
         ++ "      in: Test.Test.Fixie.THSpec.MultiParam\n"

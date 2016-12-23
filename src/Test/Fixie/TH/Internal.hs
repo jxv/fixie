@@ -8,11 +8,10 @@
 module Test.Fixie.TH.Internal where
 
 import qualified Control.Monad.Fail as Fail
-import qualified Control.Monad.Reader as Reader
 
 import Prelude hiding (log)
 import Control.Monad (join, replicateM, when, zipWithM)
-import Test.Fixie (FixieIdentity, FixieY, unimplemented, captureFunctionCall)
+import Test.Fixie (FixieT, Call(..), Function(..), unimplemented, captureCall, getFunction)
 import Data.Char (isPunctuation, isSymbol)
 import Data.Default.Class (Default(..))
 import Data.List (foldl', nub, partition)
@@ -46,12 +45,11 @@ mkFixture fixtureNameStr classTypes = do
   mapM_ assertDerivableConstraint classTypes
 
   (fixtureDec, fixtureFields) <- mkFixtureRecord fixtureName classTypes
-  typeSynonyms <- mkFixtureTypeSynonyms fixtureName
   defaultInstanceDec <- mkDefaultInstance fixtureName fixtureFields
 
   instanceDecs <- traverse (flip mkInstance fixtureName) classTypes
 
-  return ([fixtureDec, defaultInstanceDec] ++ typeSynonyms ++ instanceDecs)
+  return ([fixtureDec, defaultInstanceDec] ++ instanceDecs)
 
 mkFixtureRecord :: Name -> [Type] -> Q (Dec, [VarStrictType])
 mkFixtureRecord fixtureName classTypes = do
@@ -66,48 +64,6 @@ mkFixtureRecord fixtureName classTypes = do
   let mKind = AppT (AppT ArrowT StarT) StarT
   let fixtureDec = mkDataD [] fixtureName [KindedTV mVar mKind] fixtureCs
   return (fixtureDec, fixtureFields)
-
-mkFixtureTypeSynonyms :: Name -> Q [Dec]
-mkFixtureTypeSynonyms fixtureName = do
-  mName <- newName "m"
-  _errName <- newName "err"
-  logName <- newName "log"
-  stateName <- newName "state"
-
-  let mVar = VarT mName
-  let _errVar = VarT _errName
-  let logVar = VarT logName
-  let stateVar = VarT stateName
-
-  let mTVBndr = PlainTV mName
-  let _errTVBndr = PlainTV _errName
-  let logTVBndr = PlainTV logName
-  let stateTVBndr = PlainTV stateName
-
-  let fixturePure = mkTypeSynonym "Pure" [] (mkFixtureType unit unit unit)
-  let fixtureLog = mkTypeSynonym "Log" [logTVBndr] (mkFixtureType unit logVar unit)
-  let fixtureState = mkTypeSynonym "State" [stateTVBndr] (mkFixtureType unit unit stateVar)
-  let fixtureLogState = mkTypeSynonym "LogState" [logTVBndr, stateTVBndr] (mkFixtureType unit logVar stateVar)
-  let fixturePureT = mkTypeSynonym "PureT" [mTVBndr] (mkFixtureTransformerType unit unit unit mVar)
-  let fixtureLogT = mkTypeSynonym "LogT" [logTVBndr, mTVBndr] (mkFixtureTransformerType unit logVar unit mVar)
-  let fixtureStateT = mkTypeSynonym "StateT" [stateTVBndr, mTVBndr] (mkFixtureTransformerType unit unit stateVar mVar)
-  let fixtureLogStateT = mkTypeSynonym "LogStateT" [logTVBndr, stateTVBndr, mTVBndr] (mkFixtureTransformerType unit logVar stateVar mVar)
-
-  return
-    [ fixturePure
-    , fixtureLog
-    , fixtureState
-    , fixtureLogState
-    , fixturePureT
-    , fixtureLogT
-    , fixtureStateT
-    , fixtureLogStateT
-    ]
-  where
-    unit = TupleT 0
-    mkTypeSynonym suffix varBndr ty = TySynD (mkName (nameBase fixtureName ++ suffix)) varBndr ty
-    mkFixtureType err log state = AppT (ConT fixtureName) (AppT (AppT (AppT (AppT (ConT ''FixieIdentity) (ConT fixtureName)) err) log) state)
-    mkFixtureTransformerType err log state m = AppT (ConT fixtureName) (AppT (AppT (AppT (AppT (AppT (ConT ''FixieY) (ConT fixtureName)) err) log) state) m)
 
 mkDefaultInstance :: Name -> [VarStrictType] -> Q Dec
 mkDefaultInstance fixtureName fixtureFields = do
@@ -124,13 +80,11 @@ mkDefaultInstance fixtureName fixtureFields = do
 
 mkInstance :: Type -> Name -> Q Dec
 mkInstance classType fixtureName = do
-  errVar <- VarT <$> newName "err"
-  writerVar <- VarT <$> newName "w"
-  stateVar <- VarT <$> newName "s"
+  eVar <- VarT <$> newName "e"
   mVar <- VarT <$> newName "m"
 
-  let fixtureWithoutVarsT = AppT (ConT ''FixieY) (ConT fixtureName)
-  let fixtureT = AppT (AppT (AppT (AppT fixtureWithoutVarsT errVar) writerVar) stateVar) mVar
+  let fixtureWithoutVarsT = AppT (ConT ''FixieT) (ConT fixtureName)
+  let fixtureT = AppT (AppT fixtureWithoutVarsT eVar) mVar
   let instanceHead = AppT classType fixtureT
 
   classInfo <- reify (unappliedTypeName classType)
@@ -301,16 +255,18 @@ unimplementedField fieldName = (fieldName, unimplementedE)
 
 {-|
   Generates an implementation of a method within a 'Fixie' typeclass
-  instance for a generated fixture record. The implementation handles three
+  instance for a generated fixture record. The implementation handles four
   things:
 
     1. It detects the arity of the method to implement and automatically creates
        a function declaration that accepts that many arguments.
 
     2. It retrieves the actual implementation out of the reader-provided
-       typeclass dictionary using 'asks'.
+       typeclass dictionary using 'getFunction'.
 
-    3. It applies the reader-provided function to all of the arguments generated
+    3. It captures the call of the function.
+
+    4. It applies the reader-provided function to all of the arguments generated
        by the arity-detection pass from step 1.
 
    This function expects a signature declaration that describes the typeclass
@@ -329,9 +285,12 @@ mkDictInstanceFunc (SigD name typ) = do
   let vars = map VarE argNames
 
   implE <- [e|do
-    fn <- Reader.asks $(return askFunc)
-    captureFunctionCall $ pack $(return nameString)
-    $(return $ applyE (VarE 'fn) vars)|]
+    fn <- getFunction $(return askFunc)
+    let fnString = $(return nameString)
+    let call = Call $ Function (pack fnString)
+    captureCall call
+    $(return $ applyE (VarE 'fn) vars)
+   |]
 
   let funClause = Clause pats (NormalB implE) []
   return $ FunD name [funClause]

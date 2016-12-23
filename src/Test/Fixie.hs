@@ -8,25 +8,9 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Test.Fixie
-  -- * The Fixie monad
-  ( FixieIdentity
-  , unFixie
-  , logFixie
-  , evalFixie
-  , execFixie
-  , runFixie
-  -- * The FixieY monad transformer
-  , FixieY
-  , unFixieY
-  , logFixieY
-  , evalFixieY
-  , execFixieY
-  , runFixieY
-  -- * Helper functions
-  , track
-  , captureFunctionCall
-
-  -- New hotness
+  ( Note(..)
+  , Function(..)
+  , Call(..)
   , FixieT
   , FixieM
   , toSet
@@ -133,7 +117,8 @@ import Control.Monad.Reader (ReaderT, runReaderT, ask)
 import Control.Monad.Writer (WriterT, runWriterT)
 
 import Control.Monad.Except
-import Control.Monad.RWS
+import Control.Monad.Reader
+import Control.Monad.Writer
 import Data.Functor.Identity
 import Data.String (IsString)
 import Data.Set (Set)
@@ -153,6 +138,9 @@ newtype Call = Call { _function :: Function }
 
 newtype FixieT f e m a = FixieT (ExceptT e (ReaderT (f (FixieT f e m)) (WriterT [Note] (WriterT [Call] m))) a)
   deriving (Functor, Applicative, Monad, MonadError e)
+
+instance MonadTrans (FixieT f e) where
+  lift = FixieT . lift . lift . lift . lift
 
 type FixieM f e = FixieT f e Identity
 
@@ -520,67 +508,3 @@ functionsM = fixieM functionsT
 
 functionsetM :: f (FixieM f e) -> FixieM f e a -> (Set Function)
 functionsetM = fixieM functionsetT
-
-----
-
-type FixieIdentity fixture err log state = FixieY fixture err log state Identity
-
-type Tracker = WriterT [Text]
-
-type FunctionCalls = WriterT [Text]
-
-newtype FixieY fixture err log state m a = FixieY { getRWST :: ExceptT err (RWST (fixture (FixieY fixture err log state m)) [log] state (Tracker (FunctionCalls m))) a }
-  deriving
-    ( Functor
-    , Applicative
-    , Monad
-    , MonadReader (fixture (FixieY fixture err log state m))
-    , MonadWriter [log]
-    , MonadState state
-    )
-
-assumeRight :: Monad m => FixieY fixture err log state m a -> (RWST (fixture (FixieY fixture err log state m)) [log] state (Tracker (FunctionCalls m))) a
-assumeRight = fmap fromRight' . runExceptT . getRWST
-
-instance MonadTrans (FixieY fixture error log state) where
-  lift = FixieY . lift . lift . lift . lift
-
-instance MonadError e m => MonadError e (FixieY fixture err log state m) where
-  throwError = lift . throwError
-  catchError m h = FixieY  $ ExceptT $ fmap Right (assumeRight m `catchError` \e -> assumeRight (h e))
-
-unFixieY :: Monad m => FixieY fixture () () () m a -> fixture (FixieY fixture () () () m) -> m a
-unFixieY stack env = fmap fst (evalFixieY stack env)
-
-logFixieY :: Monad m => FixieY fixture () log () m a -> fixture (FixieY fixture () log () m) -> m [log]
-logFixieY stack env = fmap snd (evalFixieY stack env)
-
-evalFixieY :: Monad m => FixieY fixture () log () m a -> fixture (FixieY fixture () log () m) -> m (a, [log])
-evalFixieY stack env = (fmap fst . runWriterT) $ (fmap fst . runWriterT) $ evalRWST (assumeRight stack) env ()
-
-execFixieY :: Monad m => FixieY fixture () log state m a -> fixture (FixieY fixture () log state m) -> state -> m (state, [log])
-execFixieY stack env st = (fmap fst . runWriterT) $ (fmap fst . runWriterT) $ execRWST (assumeRight stack) env st
-
-runFixieY :: Monad m => FixieY fixture () log state m a -> fixture (FixieY fixture () log state m) -> state -> m (a, state, [log])
-runFixieY stack env st = (fmap fst . runWriterT) $ (fmap fst . runWriterT) $ runRWST (assumeRight stack) env st
-
-unFixie :: FixieIdentity fixture () () () a -> fixture (FixieIdentity fixture () () ()) -> a
-unFixie stack env = runIdentity (unFixieY stack env)
-
-logFixie :: FixieIdentity fixture () log () a -> fixture (FixieIdentity fixture () log ()) -> [log]
-logFixie stack env = runIdentity (logFixieY stack env)
-
-evalFixie :: FixieIdentity fixture () log () a -> fixture (FixieIdentity fixture () log ()) -> (a, [log])
-evalFixie stack env = runIdentity (evalFixieY stack env)
-
-execFixie :: FixieIdentity fixture () log state a -> fixture (FixieIdentity fixture () log state) -> state -> (state, [log])
-execFixie stack env st = runIdentity (execFixieY stack env st)
-
-runFixie :: FixieIdentity fixture () log state a -> fixture (FixieIdentity fixture () log state) -> state -> (a, state, [log])
-runFixie stack env st = runIdentity (runFixieY stack env st)
-
-track :: Monad m => Text -> FixieY fixture err log state m ()
-track = FixieY . lift . lift . tell . (:[])
-
-captureFunctionCall :: Monad m => Text -> FixieY fixture err log state m ()
-captureFunctionCall = FixieY . lift . lift . lift . tell . (:[])
