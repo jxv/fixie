@@ -100,5 +100,5 @@ spec = do
                 throwError msg
             }
       actual <- outputFunctionsNotesT fixture throw
-      let expected = (Left "error message", ["throwMessage"], ["test test", "abc"])
+      let expected = (Left "error message", ["throwMessage", "throwError"], ["test test", "abc"])
       actual `shouldBe` expected

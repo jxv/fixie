@@ -120,7 +120,7 @@ import Data.String (IsString)
 import Data.Set (Set)
 import qualified Data.Set as Set (fromList)
 import Data.Either.Combinators (fromRight')
-import Data.Text (Text)
+import Data.Text (Text, pack)
 import Data.Void (Void)
 
 newtype Note = Note Text
@@ -133,7 +133,15 @@ newtype Call = Call { _function :: Function }
   deriving (Show, Eq, Ord)
 
 newtype FixieT f e m a = FixieT (ExceptT e (ReaderT (f (FixieT f e m)) (WriterT [Note] (WriterT [Call] m))) a)
-  deriving (Functor, Applicative, Monad, MonadError e)
+  deriving (Functor, Applicative, Monad)
+
+instance Monad m => MonadError e (FixieT f e m) where
+  throwError e = do
+    captureCall $ Call $ Function (pack "throwError")
+    FixieT $ throwError e
+  catchError (FixieT a) b = do
+    captureCall $ Call $ Function (pack "catchError")
+    FixieT $ catchError a ((\(FixieT c) -> c) . b)
 
 instance MonadTrans (FixieT f e) where
   lift = FixieT . lift . lift . lift . lift
