@@ -3,7 +3,7 @@ name:
 version:
   0.0.0
 synopsis:
-  Opiniated framework to test with spies, stubs, and/or mocks
+  Opininated testing framework
 description:
   Please see README.md
 homepage:
