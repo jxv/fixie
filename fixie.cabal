@@ -1,7 +1,7 @@
 name:
   fixie
 version:
-  0.0.0
+  1.0.0
 synopsis:
   Opininated testing framework for mtl style (spies, stubs, and mocks)
 description:
